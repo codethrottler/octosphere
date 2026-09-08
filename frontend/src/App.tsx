@@ -1,20 +1,14 @@
 import { BrowserRouter } from 'react-router-dom'
 
-import { NotificationsProvider } from '@/app/notifications/NotificationsProvider'
-import { AppRoutes } from '@/app/routes'
-import { AppShell } from '@/app/shell/AppShell'
-import { SessionProvider } from '@/app/session/SessionContext'
+import { AppRoutes } from '@/routes'
+import { AppShell } from '@/shell/AppShell'
 
 export function App() {
   return (
     <BrowserRouter>
-      <SessionProvider>
-        <NotificationsProvider>
-          <AppShell>
-            <AppRoutes />
-          </AppShell>
-        </NotificationsProvider>
-      </SessionProvider>
+      <AppShell>
+        <AppRoutes />
+      </AppShell>
     </BrowserRouter>
   )
 }
