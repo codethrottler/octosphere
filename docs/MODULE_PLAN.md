@@ -1,103 +1,124 @@
 # OctoSphere — Module Plan
 
-Tracks what's built vs. planned across the full nav tree. Update this file
-in the same commit that changes a module's status — it should always
-reflect the actual state of `main`, not intent.
+Tracks what's built vs. planned, broken into buildable increments per
+module. Update this file in the same commit that changes a module's
+status — it should always reflect the actual state of `main`, not intent.
 
-Status legend: ✅ built this session · 🚧 partially built · ⬜ not started
-(placeholder route only, or nothing at all).
+Status legend: ✅ done · 🚧 partial · ⬜ not started.
 
-## 🏠 Dashboard — ✅ built
+## Foundation (Part 1 — this session) — ✅
 
-The Unified Dashboard, one level above the 5 module icons. Lives at
-`/dashboard`, entered via the "Home" icon-rail entry or the OctoSphere
-wordmark. Sub-pages are tabs on this one route (`?tab=<id>`), not separate
-routes — see `ARCHITECTURE.md` for why.
+Not a "module" in the nav tree, but the prerequisite everything else is
+built on:
 
-| Tab (`?tab=`) | Status | Notes |
-|---|---|---|
-| Executive Overview (`executive`) | ✅ | Cross-module KPIs via `shared/analytics/getExecutiveSummary()`. Reused as-is by Reports' future Executive Reports page. |
-| My Overview (`my`) | ✅ | Personal snapshot. Mock data — swaps to real once My Work exists. |
-| Team Overview (`team`) | ✅ | Gated to `manager`/`admin`. Mock data — swaps to real once Team Work exists. |
-| HR Overview (`hr`) | ✅ | Gated to `hr`/`admin`. Uses `shared/analytics/getHrSummary()` — reused as-is by HRMS' future Overview page. |
-| Task Overview (`task`) | ✅ | Shares `taskData.mock.ts` with Executive Overview so totals agree. Mock data — swaps to real once My Work/Projects exists. |
-| Service Desk Overview (`service-desk`) | ✅ | Shares `ticketData.mock.ts` with Executive Overview. Mock data — swaps to real once Service Desk exists. |
-| Notifications & Alerts (`notifications`) | ✅ | Filterable + paginated. Read/unread state shared with the header bell via `NotificationsProvider`. |
+- [x] Monorepo layout (`/backend`, `/frontend`), each with its own
+      dependency manifest and `.env.example`.
+- [x] Django + DRF + MySQL backend, `core` app with migrations applied
+      against a real MySQL database (not sqlite).
+- [x] JWT auth wired (`djangorestframework-simplejwt`) — token endpoints
+      exist, no login screen consumes them yet.
+- [x] `GET /api/core/health/` — public, reports DB connectivity. Consumed
+      by the frontend Sidebar's "API connected" indicator, not just curl.
+- [x] Application shell: `AppShell`, `IconRail` (5 modules), `Sidebar`
+      (collapsible, per-module sub-nav), `Header` (search, org/branch
+      scope, avatar, directory/help/notifications shortcuts, wordmark).
+- [x] Widget library: `KpiCard` (with sparkline), `DonutCard`,
+      `MiniCalendarCard`, `ActivityFeedCard`.
+- [x] Routing shape (`/:moduleId/:pageId`) that every module's pages will
+      slot into without changing its shape.
+- [x] `docs/ARCHITECTURE.md`, `docs/CONVENTIONS.md`, this file, README,
+      `.env.example` × 2, pinned `requirements.txt` / `package.json`.
 
-Notifications & Alerts and the tabs above notification/error handling
-(HR/Team gates) are the load-bearing examples for a future module to copy:
-role gating, a shared cross-module data source, and a full list screen
-(filter + paginate + mark-read) all exist here first.
+## 👥 HRMS
 
-## 👥 HRMS — ⬜
+- [x] **Overview** (`/hrms/overview`) — KPI grid (headcount, new
+      joiners, exits, attendance rate, all via a period filter),
+      department distribution donut, HR calendar, recent activity feed.
+      Mock data (`frontend/src/modules/hrms/mockData.ts`).
+- [ ] Backend: `hrms` Django app — `EmployeeProfile` (OneToOne →
+      `core.User`) for the rich profile fields (emergency contacts, bank
+      details, skills, documents). Don't grow `core.User` further — see
+      ARCHITECTURE.md.
+- [ ] My Profile (personal/contact/employment/emergency/bank/skills/documents)
+- [ ] Employees (Directory, List — **first AG-Grid table**, Org
+      Structure, Departments, Designations, Teams, Managers, Lifecycle:
+      onboarding/transfers/promotions/probation/offboarding)
+- [ ] Attendance (My/Team, calendar, check in/out, late/early, overtime,
+      shifts, corrections, reports)
+- [ ] Leave (My/Apply/Balance/Calendar/Team/Approvals/Types/Reports) —
+      Approvals here should be a UI on `core.ApprovalRequest`, not a new
+      approval table
+- [ ] Documents (My/Employee/Company, Policies, Contracts, Certificates,
+      Expiry, Approval)
+- [ ] Performance (My/Goals/KPIs/Reviews/Manager Reviews/Self
+      Assessment/Feedback/Reports)
+- [ ] HR Administration (Employee/Leave/Attendance policies, Holiday
+      Calendar, HR Settings)
 
-Not started. When built:
-- My Profile, Employees (directory/list/org structure/lifecycle),
-  Attendance, Leave, Documents, Performance, HR Administration per the
-  nav tree.
-- Its own Overview widget set should call `shared/analytics/getHrSummary()`
-  (already built) rather than re-deriving headcount/department numbers —
-  see ARCHITECTURE.md's "Data & the mock-to-real seam".
-- Org hierarchy (`Company → Branch → Department → Team → Employees`) is
-  owned here; other modules read it, they don't duplicate it.
+## ✅ My Work
 
-## ✅ My Work — ⬜
+- [ ] Overview (`/my-work/overview`) — currently `ComingSoonPage`
+- [ ] My Tasks (All/Assigned/Created/Due Today/Upcoming/Overdue/Completed)
+- [ ] Projects (All/My/Team, Dashboard, Milestones, Reports)
+- [ ] Approvals (Pending/Approved/Rejected/History) — UI on
+      `core.ApprovalRequest`
+- [ ] Team Work (Tasks/Workload/Performance/Calendar)
+- [ ] My Calendar (Tasks/Meetings/Leave/Deadlines/Events)
+- [ ] Backend: `my_work` Django app — `Task`, `Project` models; tasks
+      should be notifiable/auditable via `core.Notification`/`AuditLogEntry`
+      generic FKs, not their own copies
 
-Not started (name collides with the ✅ status marker above — that's just
-this doc's legend, not a comment on the module). When built:
-- My Tasks, Projects, Approvals, Team Work, My Calendar per the nav tree.
-- Dashboard's My Overview / Team Overview / Task Overview tabs currently
-  read mock data isolated in `modules/dashboard/mock/`
-  (`myOverview.mock.ts`, `teamOverview.mock.ts`) and
-  `shared/analytics/taskData.mock.ts`. Point their `data/use*.ts` hooks at
-  the real My Work data once it exists; the tab components shouldn't need
-  to change.
-- Approvals feeding the Notifications list (`category: 'approval'`) should
-  come from here once it's real.
+## 🎫 Service Desk
 
-## 🎫 Service Desk — ⬜
+- [ ] Overview (`/service-desk/overview`) — currently `ComingSoonPage`
+- [ ] HR Desk / IT & Network Desk / Admin Desk — **must** be the same
+      list view filtered by `Ticket.desk`, not 3 separate pages. See
+      ARCHITECTURE.md "Ticket engine: one model family, not three" — this
+      is a hard constraint, not a suggestion.
+- [ ] Ticket Management (All/Unassigned/Assigned to Me/Escalated/SLA
+      Breached/Closed) — built on `core.Ticket`/`SLAPolicy`, already
+      modeled
+- [ ] Knowledge Base (FAQs, HR/IT/Admin Articles, Policies & Guides)
+- [ ] Service Reports (Volume/SLA/Resolution/Agent/Department Performance)
+- [ ] Backend: ticket creation/assignment flow that actually populates
+      `sla_due_at` from `SLAPolicy` and flips `sla_breached` — the models
+      exist (`core.Ticket`, `SLAPolicy`), the engine that drives them
+      doesn't yet
 
-Not started. When built, HR Desk / IT Desk / Admin Desk **must** share one
-ticket engine, SLA engine, assignment system, notification system, comment
-system, attachment system, audit system, workflow engine, and reporting
-engine — see ARCHITECTURE.md. The three desks are a view/category over
-shared ticket data, not three parallel systems.
-- Dashboard's Service Desk Overview tab and Executive Overview's
-  "Tickets by Desk" donut both currently read
-  `shared/analytics/ticketData.mock.ts`. Point that one file's data at the
-  real ticket engine (or replace it with a `getTicketSummary()` aggregation
-  next to it, same pattern as `executiveMetrics.ts`) once Service Desk
-  exists.
+## 📊 Reports & Analytics
 
-## 📊 Reports & Analytics — ⬜
+- [ ] Overview (`/reports/overview`) — currently `ComingSoonPage`
+- [ ] Executive Reports, HR Analytics, Workforce Analytics, Task &
+      Productivity, Service Desk Analytics, Custom Reports, Scheduled
+      Reports, Export Center
+- [ ] Once module dashboards exist elsewhere, cross-module aggregations
+      here should query `core` models directly / via a shared aggregation
+      module — not duplicate a query another module's Overview already
+      wrote (see ARCHITECTURE.md)
 
-Not started. When built:
-- Executive Reports must call `shared/analytics/getExecutiveSummary()`
-  (already built for the Dashboard's Executive Overview tab) instead of
-  re-implementing the same headcount/task/ticket aggregation.
-- HR Analytics, Task & Productivity, Service Desk Analytics sections can
-  follow the same pattern: add a `get*Summary()` in `shared/analytics/` if
-  a Dashboard tab already computes overlapping numbers, rather than each
-  screen owning its own copy.
+## ⚙️ Administration
 
-## ⚙️ Administration — ⬜
+- [ ] Overview (`/administration/overview`) — currently `ComingSoonPage`
+- [ ] Organization — CRUD on `core.Company/Branch/Department/Team`
+      (already modeled)
+- [ ] User Management (Users/Roles/Permissions/Groups/Access Control) —
+      CRUD + permission logic on `core.User` (already modeled; no
+      role/permission model exists yet beyond Django's built-in
+      `auth.Group`/`Permission` — decide whether that's sufficient or a
+      custom `Role` model is needed when this is built)
+- [ ] Workflow Management, Service Desk Configuration (Desks, Categories,
+      Priorities, SLA Policies — UI on `core.SLAPolicy`, Escalation
+      Rules, Ticket Statuses)
+- [ ] Notifications (Email Templates, Rules, In-App, Preferences) — UI on
+      `core.Notification`
+- [ ] System Settings, Security, Audit & Compliance (UI on
+      `core.AuditLogEntry`), System Monitoring
 
-Not started. Organization (`Company → Branch → Department → Team →
-Employees`), User Management, Workflow Management, Service Desk
-Configuration, Notifications, System Settings, Security, Audit &
-Compliance, System Monitoring per the nav tree — all placeholders for now.
+## Header bell → Notifications
 
-## Shell & shared infrastructure — ✅ built this session
-
-Built as prerequisites for the Dashboard, available to every future module:
-
-- `AppShell` / `IconRail` / `TopBar` — the 6-entry icon rail (Home + 5
-  modules) and top bar with the notification bell + current user.
-- `SessionProvider` / `useSession()` — current user + `hasRole(...)`.
-- `NotificationsProvider` / `useNotifications()` — shared read/unread
-  notification state.
-- Shared component library: `KpiCard`, `DonutCard`, `MiniCalendarCard`,
-  `ActivityFeedCard`, `Badge`, `Tabs`, `PermissionGate`, `Pagination`.
-- `shared/analytics/` — `getExecutiveSummary()`, `getHrSummary()`, and
-  their mock sources (`orgData.mock.ts`, `taskData.mock.ts`,
-  `ticketData.mock.ts`).
+The header's notification bell (`MOCK_UNREAD_NOTIFICATIONS = 5` in
+`Header.tsx`) links to `/administration/notifications`, which doesn't
+exist as a real page yet — it resolves to `ComingSoonPage` until
+Administration → Notifications is built. Swap the mock constant for a
+real unread count (`core.Notification.objects.filter(recipient=request.user,
+is_read=False).count()` via a small endpoint) at the same time.
