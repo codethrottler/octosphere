@@ -3,6 +3,7 @@ import type { ComponentType } from 'react'
 import { Navigate, Route, Routes, useParams } from 'react-router-dom'
 
 import { ComingSoonPage } from '@/common/ComingSoonPage'
+import { AttendancePage } from '@/modules/hrms/attendance/AttendancePage'
 import { EmployeesPage } from '@/modules/hrms/employees/EmployeesPage'
 import { HrmsOverviewPage } from '@/modules/hrms/HrmsOverviewPage'
 import { MyProfilePage } from '@/modules/hrms/profile/MyProfilePage'
@@ -18,6 +19,7 @@ const PAGE_REGISTRY: Record<string, ComponentType> = {
   'hrms/overview': HrmsOverviewPage,
   'hrms/my-profile': MyProfilePage,
   'hrms/employees': EmployeesPage,
+  'hrms/attendance': AttendancePage,
 }
 
 function ModulePage() {
