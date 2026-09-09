@@ -187,3 +187,27 @@ class EmployeeListTests(APITestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["count"], 1)
+
+
+class HrmsOverviewTests(APITestCase):
+    def setUp(self):
+        self.team = make_org_tree()
+        self.user = User.objects.create_user(
+            username="priya", first_name="Priya", last_name="Nair", password="pw", team=self.team,
+            employment_status="active",
+        )
+
+    def test_requires_auth(self):
+        response = self.client.get(reverse("hrms:overview"))
+        self.assertEqual(response.status_code, 401)
+
+    def test_returns_real_counts(self):
+        self.client.force_authenticate(self.user)
+
+        response = self.client.get(reverse("hrms:overview"), {"period": "month"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["kpis"]["total_employees"], 1)
+        self.assertEqual(response.data["kpis"]["active_employees"], 1)
+        self.assertEqual(len(response.data["kpis"]["on_leave_today_trend"]), 5)
+        self.assertIn("department_distribution", response.data)

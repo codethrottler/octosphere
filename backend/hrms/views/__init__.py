@@ -6,6 +6,7 @@ from hrms.views.attendance import (
 )
 from hrms.views.employees import DepartmentViewSet, EmployeeViewSet, OrgStructureView, TeamViewSet
 from hrms.views.leave import LeaveApprovalsView, LeaveBalanceViewSet, LeaveRequestViewSet, LeaveTypeViewSet
+from hrms.views.overview import HrmsOverviewView
 from hrms.views.profile import (
     BankAccountMeView,
     DesignationViewSet,
@@ -31,6 +32,7 @@ __all__ = [
     "LeaveBalanceViewSet",
     "LeaveRequestViewSet",
     "LeaveTypeViewSet",
+    "HrmsOverviewView",
     "BankAccountMeView",
     "DesignationViewSet",
     "EmergencyContactViewSet",
