@@ -1,24 +1,31 @@
+import type { ComponentType } from 'react'
+
 import { Navigate, Route, Routes, useParams } from 'react-router-dom'
 
 import { ComingSoonPage } from '@/common/ComingSoonPage'
+import { EmployeesPage } from '@/modules/hrms/employees/EmployeesPage'
 import { HrmsOverviewPage } from '@/modules/hrms/HrmsOverviewPage'
 import { moduleNav } from '@/shell/nav.config'
 
 /**
- * hrms/overview is the only page with a real component this session —
- * everything else in the sidebar resolves here to ComingSoonPage. Add a
- * case above the fallback as each page gets built; nothing about the
- * routing shape needs to change.
+ * Real pages built so far, keyed by "<moduleId>/<pageId>". Anything not
+ * in this map resolves to ComingSoonPage — add an entry here as each
+ * page gets built; the routing shape itself never changes. See
+ * docs/ARCHITECTURE.md.
  */
+const PAGE_REGISTRY: Record<string, ComponentType> = {
+  'hrms/overview': HrmsOverviewPage,
+  'hrms/employees': EmployeesPage,
+}
+
 function ModulePage() {
   const { moduleId, pageId } = useParams<{ moduleId: string; pageId: string }>()
   const activeModule = moduleNav.find((m) => m.id === moduleId)
 
   if (!activeModule) return <Navigate to="/hrms/overview" replace />
 
-  if (activeModule.id === 'hrms' && pageId === 'overview') {
-    return <HrmsOverviewPage />
-  }
+  const Page = PAGE_REGISTRY[`${activeModule.id}/${pageId}`]
+  if (Page) return <Page />
 
   const page = activeModule.sidebar.find((s) => s.id === pageId) ?? activeModule.sidebar[0]
   return <ComingSoonPage moduleLabel={activeModule.label} pageLabel={page.label} />
