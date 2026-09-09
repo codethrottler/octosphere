@@ -5,6 +5,7 @@ import { Navigate, Route, Routes, useParams } from 'react-router-dom'
 import { ComingSoonPage } from '@/common/ComingSoonPage'
 import { EmployeesPage } from '@/modules/hrms/employees/EmployeesPage'
 import { HrmsOverviewPage } from '@/modules/hrms/HrmsOverviewPage'
+import { MyProfilePage } from '@/modules/hrms/profile/MyProfilePage'
 import { moduleNav } from '@/shell/nav.config'
 
 /**
@@ -15,6 +16,7 @@ import { moduleNav } from '@/shell/nav.config'
  */
 const PAGE_REGISTRY: Record<string, ComponentType> = {
   'hrms/overview': HrmsOverviewPage,
+  'hrms/my-profile': MyProfilePage,
   'hrms/employees': EmployeesPage,
 }
 

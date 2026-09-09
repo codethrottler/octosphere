@@ -66,3 +66,15 @@ body {
   scrollbar-width: thin;
   scrollbar-color: var(--color-ink-300) transparent;
 }
+
+/*
+ * Shared text input/select/textarea styling for HRMS forms (My Profile,
+ * Leave apply, Attendance corrections, ...) — one class instead of
+ * repeating the same long Tailwind utility string on every field. Reach
+ * for this before writing a one-off input className.
+ */
+@layer components {
+  .input {
+    @apply rounded-lg border border-ink-200 px-3 py-1.5 text-sm text-ink-800 focus:border-brand-300 focus:outline-none;
+  }
+}
