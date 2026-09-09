@@ -52,5 +52,10 @@ class AttendanceCorrection(models.Model):
     class Meta:
         ordering = ["-created_at"]
 
+    def get_approval(self):
+        from core.approvals import get_approval_request
+
+        return get_approval_request(self)
+
     def __str__(self) -> str:
         return f"Correction for {self.record}"
