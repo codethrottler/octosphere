@@ -6,6 +6,7 @@ import { ComingSoonPage } from '@/common/ComingSoonPage'
 import { AttendancePage } from '@/modules/hrms/attendance/AttendancePage'
 import { EmployeesPage } from '@/modules/hrms/employees/EmployeesPage'
 import { HrmsOverviewPage } from '@/modules/hrms/HrmsOverviewPage'
+import { LeavePage } from '@/modules/hrms/leave/LeavePage'
 import { MyProfilePage } from '@/modules/hrms/profile/MyProfilePage'
 import { moduleNav } from '@/shell/nav.config'
 
@@ -20,6 +21,7 @@ const PAGE_REGISTRY: Record<string, ComponentType> = {
   'hrms/my-profile': MyProfilePage,
   'hrms/employees': EmployeesPage,
   'hrms/attendance': AttendancePage,
+  'hrms/leave': LeavePage,
 }
 
 function ModulePage() {
