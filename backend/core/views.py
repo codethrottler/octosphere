@@ -1,9 +1,20 @@
 from django.db import connection
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 import django
+
+from core.serializers import CurrentUserSerializer
+
+
+class CurrentUserView(APIView):
+    """GET /api/core/me/ — the authenticated user's identity. Backs the frontend's Header/lib/currentUser."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response(CurrentUserSerializer(request.user).data)
 
 
 class HealthCheckView(APIView):
