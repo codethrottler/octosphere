@@ -1,9 +1,9 @@
 import { useState } from 'react'
 
-import { Bell, ChevronDown, CircleHelp, Search, UsersRound } from 'lucide-react'
+import { Bell, ChevronDown, CircleHelp, LogOut, Search, UsersRound } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
-import { currentUser } from '@/lib/currentUser'
+import { useAuth } from '@/auth/AuthContext'
 
 // Mock — Administration > Notifications owns the real count once that module exists.
 const MOCK_UNREAD_NOTIFICATIONS = 5
@@ -12,6 +12,7 @@ const MOCK_SCOPES = ['Acme Corp — Headquarters', 'Acme Corp — EMEA', 'Acme C
 
 /** Full-width top bar: search, org/branch scope, directory + help shortcuts, notifications, avatar, wordmark. */
 export function Header() {
+  const { user, logout } = useAuth()
   const [scopeOpen, setScopeOpen] = useState(false)
   const [scope, setScope] = useState(MOCK_SCOPES[0])
 
@@ -65,11 +66,21 @@ export function Header() {
         </div>
 
         <span
-          title={`${currentUser.name} — ${currentUser.title}`}
+          title={user ? `${user.name} — ${user.title || user.username}` : undefined}
           className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-xs font-semibold text-brand-700"
         >
-          {currentUser.initials}
+          {user?.initials ?? '?'}
         </span>
+
+        <button
+          type="button"
+          onClick={logout}
+          title="Sign out"
+          aria-label="Sign out"
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-ink-500 hover:bg-ink-50 hover:text-ink-800"
+        >
+          <LogOut className="h-5 w-5" />
+        </button>
 
         <Link
           to="/hrms/employees"
