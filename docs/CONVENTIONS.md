@@ -42,15 +42,31 @@ Route names inside are namespaced automatically (`reverse("core:health")`).
 
 ## DRF serializer/viewset patterns
 
-Not exercised yet beyond `HealthCheckView` (a plain `APIView`, not a
-viewset — there's no model to CRUD). Once a real resource needs
-endpoints:
+Established in `hrms/` (Part 2) — `core/` still only has plain
+`APIView`s (`HealthCheckView`, `CurrentUserView`) since it has no model
+to CRUD:
 
 - Prefer `ModelSerializer` over hand-written fields unless the shape
   genuinely diverges from the model.
-- Prefer `ModelViewSet` + a router for standard CRUD; drop to `APIView`
-  only for actions that aren't CRUD on one model (auth, health, bulk
-  actions).
+- Prefer `ModelViewSet` (or `ReadOnlyModelViewSet` for browse-only
+  resources — `DepartmentViewSet`, `TeamViewSet`, `DesignationViewSet`)
+  + a router for standard CRUD; drop to `APIView` only for actions that
+  aren't CRUD on one model (auth, health, `CheckInView`/`CheckOutView`).
+- A resource that's create/list/retrieve but never updated or deleted in
+  place (`AttendanceCorrectionViewSet`, `LeaveRequestViewSet` — a
+  correction/leave request is approved, rejected, or superseded by a new
+  one, never edited) mixes in only `ListModelMixin`, `RetrieveModelMixin`,
+  `CreateModelMixin` on `GenericViewSet`, not the full `ModelViewSet`.
+- An approve/reject-style `@action` on a scoped viewset must not reuse
+  `get_queryset()`'s scoping for `self.get_object()` — see
+  ARCHITECTURE.md's "A gotcha worth generalizing" for why (it 404s for
+  the legitimate approver). Check `self.action in ("approve", "reject")`
+  in `get_queryset()` and skip the scoping there.
+- Custom object-level permission checks needing "HR/admin" gate on
+  `request.user.is_staff` (see `hrms/permissions.py`) — there's no
+  custom `Role` model yet (that's Administration > User Management, not
+  built). Swap to a real role check there without touching call sites,
+  once it exists.
 - A view that should skip the default `IsAuthenticated` (see below) sets
   `permission_classes = [AllowAny]` explicitly and says why in a
   docstring, the way `HealthCheckView` does — don't change the global
@@ -75,18 +91,26 @@ between machines — add a new `.env` key + `.env.example` entry instead.
 See ARCHITECTURE.md's "Frontend: folder structure" for the full tree.
 Summary of where new code goes:
 
+- **Session/auth** (login, the authenticated-user context, route gating)
+  → `frontend/src/auth/`. Not shell chrome (it's not app frame — it
+  decides whether the frame renders at all) and not a module.
 - **Shell chrome** (anything about the app frame itself, not one module's
   content) → `frontend/src/shell/`.
-- **A widget reusable across module Overview pages** → `frontend/src/widgets/`.
-  Reuse the existing 4 before adding a 5th — see ARCHITECTURE.md's "The
-  Dashboard widget pattern".
+- **A widget reusable across modules** → `frontend/src/widgets/`. Reuse
+  an existing one before adding a new one — see ARCHITECTURE.md's "The
+  Dashboard widget pattern" (KpiCard/DonutCard/MiniCalendarCard/
+  ActivityFeedCard) — each new widget since (`SubTabs`, `Badge`,
+  `gridDefaults`/`gridDatasource`) exists because 2–3+ screens needed the
+  same thing, not because one screen wanted something slightly different.
 - **A generic page/component not specific to one module** (like
   `ComingSoonPage`) → `frontend/src/common/`.
 - **Anything specific to one module** → `frontend/src/modules/<module-id>/`,
   where `<module-id>` matches that module's `id` in `nav.config.ts`
-  (`hrms`, `my-work`, `service-desk`, `reports`, `administration`).
-- **Cross-cutting utilities** (API client, formatters, the mock current
-  user) → `frontend/src/lib/`.
+  (`hrms`, `my-work`, `service-desk`, `reports`, `administration`). A
+  module with multiple sub-areas (HRMS: Profile/Employees/Attendance/
+  Leave) gets one sub-folder per sub-area, each with its own
+  `data.ts`/`types.ts` — see ARCHITECTURE.md's frontend folder tree.
+- **Cross-cutting utilities** (API client, formatters) → `frontend/src/lib/`.
 
 Components are flat files directly in their folder (`widgets/KpiCard.tsx`),
 not nested in a same-named subdirectory — deliberately simpler than a
@@ -109,18 +133,32 @@ co-located test/story file yet to justify the extra nesting.
 
 ## AG-Grid column-def organization
 
-Not exercised yet (no list view built this session — see MODULE_PLAN.md).
-When the first one is built (HRMS Employee List is the likely first):
+Established in Part 2 (Employee List, Attendance records, Leave
+requests — see ARCHITECTURE.md's "AG-Grid: server-side pagination" for
+the Infinite Row Model / DRF bridge):
 
-- Column definitions live in that module's own file,
-  `modules/<module>/<listName>.columns.ts`, exporting a typed
-  `ColDef[]` — not inlined in the page component. This keeps the grid
-  component itself generic and the column list reviewable on its own.
-- Reuse one grid options object (`frontend/src/widgets/gridDefaults.ts`,
-  not created yet) for cross-list defaults (row height, pagination page
-  size, default column resizing behavior) so every list in the app feels
-  the same — add it when the second list view is built, not
-  speculatively for the first.
+- Column definitions live in that sub-area's own file,
+  `modules/<module>/<sub-area>/<listName>.columns.ts`, exporting a typed
+  `ColDef[]` — not inlined in the page component (`employeeList.columns.ts`,
+  `attendanceRecords.columns.ts`, `leaveRequests.columns.ts`). This keeps
+  the grid component itself generic and the column list reviewable on
+  its own.
+- `frontend/src/widgets/gridDefaults.ts` is the one shared grid options
+  object: `ModuleRegistry.registerModules([AllCommunityModule])` (once,
+  imported by every grid file), `gridTheme` (themeQuartz customized to
+  match `index.css`'s tokens — kept in sync by hand, AG-Grid's Theming
+  API doesn't read CSS custom properties), and `defaultColDef`
+  (`sortable: true`, `filter: false` — see ARCHITECTURE.md on why
+  filtering isn't done via AG-Grid's column filter popovers).
+- A column's `field` is also the sort `colId` sent to the backend — name
+  it to match the API field, and it must appear in that view's
+  `apply_ordering()` allowlist (`hrms/filters.py`) or sorting silently
+  no-ops server-side. Mark non-API-backed or unsortable-server-side
+  columns `sortable: false` explicitly rather than letting them look
+  sortable in the UI and do nothing.
+- `cacheBlockSize={25}` on every grid matches
+  `hrms/pagination.py`'s `GridPagination.default_limit` — keep these in
+  sync if either changes.
 
 ## State management
 
@@ -136,10 +174,15 @@ When the first one is built (HRMS Employee List is the likely first):
 ## How the frontend calls the API
 
 Every real API call goes through `frontend/src/lib/api.ts`
-(`apiGet<T>(path)`), never a direct `fetch()` in a component. It attaches
-the JWT access token from `localStorage` (`octosphere.accessToken`, not
-set by anything yet — no login flow exists) and throws `ApiError` on a
-non-2xx response. `VITE_API_BASE_URL` (see `frontend/.env.example`)
+(`apiGet`/`apiPost`/`apiPatch`/`apiPut`/`apiDelete`/`apiUpload<T>(path,
+...)`), never a direct `fetch()` in a component. `apiUpload` is for
+`multipart/form-data` (file uploads — omits the JSON `Content-Type` so
+the browser sets the multipart boundary itself); everything else sends
+JSON. Every call attaches the JWT access token from `localStorage`
+(`octosphere.accessToken`, set by `auth/AuthContext.tsx`'s `login()`) and
+throws `ApiError` on a non-2xx response; a 401 additionally dispatches
+`AUTH_EVENTS`'s `unauthorized` event, which `AuthContext` listens for to
+log the user out. `VITE_API_BASE_URL` (see `frontend/.env.example`)
 points it at the backend; it defaults to `http://localhost:8000` so a
 fresh clone works without an `.env`.
 

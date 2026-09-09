@@ -29,31 +29,86 @@ built on:
 - [x] `docs/ARCHITECTURE.md`, `docs/CONVENTIONS.md`, this file, README,
       `.env.example` × 2, pinned `requirements.txt` / `package.json`.
 
+## Shared/foundation additions (Part 2)
+
+Built while implementing HRMS, but reusable by every future module —
+listed here so the next session doesn't rebuild them:
+
+- `src/auth/` — `AuthContext`/`useAuth()`, `LoginPage`, `ProtectedRoute`.
+  Every module now sits behind a real JWT session; `lib/currentUser.ts`
+  (the Part 1 static mock) is gone.
+- `lib/api.ts` gained `apiPost`/`apiPatch`/`apiPut`/`apiDelete`/`apiUpload`
+  (was GET-only) and a 401 → auto-logout event.
+- `core/approvals.py` — `create_approval_request`/`get_approval_request`/
+  `decide_approval_request`. Any future module needing a yes/no decision
+  (My Work's Approvals, a Service Desk ticket escalation) should use
+  this, not build its own.
+- `GET /api/core/me/` — the authenticated user's identity.
+- AG-Grid is live: `widgets/gridDefaults.ts` (theme + module
+  registration) and `widgets/gridDatasource.ts` (Infinite Row Model ↔
+  DRF limit/offset bridge). `hrms/pagination.py`'s `GridPagination` is
+  the backend half — apply both to any future AG-Grid-backed list.
+- `widgets/SubTabs.tsx` and `widgets/Badge.tsx` — new shared primitives,
+  each justified by 2–3x reuse within HRMS already (Employees/
+  Attendance/Leave sub-tabs; correction/leave approval status pills).
+- `.input` utility class in `index.css` for form fields.
+
 ## 👥 HRMS
 
 - [x] **Overview** (`/hrms/overview`) — KPI grid (headcount, new
       joiners, exits, attendance rate, all via a period filter),
       department distribution donut, HR calendar, recent activity feed.
-      Mock data (`frontend/src/modules/hrms/mockData.ts`).
-- [ ] Backend: `hrms` Django app — `EmployeeProfile` (OneToOne →
-      `core.User`) for the rich profile fields (emergency contacts, bank
-      details, skills, documents). Don't grow `core.User` further — see
-      ARCHITECTURE.md.
-- [ ] My Profile (personal/contact/employment/emergency/bank/skills/documents)
-- [ ] Employees (Directory, List — **first AG-Grid table**, Org
-      Structure, Departments, Designations, Teams, Managers, Lifecycle:
-      onboarding/transfers/promotions/probation/offboarding)
-- [ ] Attendance (My/Team, calendar, check in/out, late/early, overtime,
-      shifts, corrections, reports)
-- [ ] Leave (My/Apply/Balance/Calendar/Team/Approvals/Types/Reports) —
-      Approvals here should be a UI on `core.ApprovalRequest`, not a new
-      approval table
+      **Real data** as of Part 2: `GET /api/hrms/overview/?period=`
+      (`backend/hrms/views/overview.py`) via
+      `frontend/src/modules/hrms/data/useHrmsOverview.ts`. See that
+      view's docstring for exactly which KPIs are real trends vs.
+      documented flat snapshots (no headcount-history table exists to
+      chart Total/Active Employees or Exits over time).
+- [x] Backend: `hrms` Django app — `EmployeeProfile` (OneToOne →
+      `core.User`), `Designation`/`Skill` catalogs, `AttendanceRecord`/
+      `AttendanceCorrection`, `LeaveType`/`LeaveBalance`/`LeaveRequest`.
+      `core.User` untouched. `core/approvals.py` (new in Part 2) is the
+      generic helper both `AttendanceCorrection` and `LeaveRequest`
+      approvals go through — neither has its own status field, see
+      ARCHITECTURE.md's generic-FK pattern.
+- [x] **My Profile** (`/hrms/my-profile`) — Personal/Contact tabs
+      editable; Employment read-only (HR-managed, cross-references
+      `core.User` via `useAuth()`); Emergency Contacts, Bank/Payment
+      (India-specific: account number + IFSC), Skills & Qualifications,
+      Documents (profile-scoped upload/list/delete) all with real
+      add/delete against the backend.
+- [x] **Employees** (`/hrms/employees`) — Directory (card grid), List
+      (**the first AG-Grid table** — server-side search/filter/sort via
+      `widgets/gridDatasource.ts`'s Infinite Row Model), Org Structure
+      (Company→Branch→Department→Team tree), Departments, Designations,
+      Teams (all read-only browses on `core` org models). Managers and
+      Employee Lifecycle (onboarding/transfers/promotions/probation/
+      offboarding) are **not built** — no UI for creating/editing
+      employees exists yet, by design (that's onboarding, a future
+      session).
+- [x] **Attendance** (`/hrms/attendance`) — My Attendance (Check In/Check
+      Out actions + AG-Grid list), Team Attendance (same grid,
+      `?scope=team` = my direct reports), Attendance Calendar
+      (`MiniCalendarCard` reused), Corrections (request + manager
+      approve/reject, applies the correction to the record on approval).
+      Late/Early Records, Overtime, Shift Management, and Attendance
+      Reports are **not built** — no shift model exists, so "late" isn't
+      computable yet.
+- [x] **Leave** (`/hrms/leave`) — Apply Leave (form + AG-Grid of my
+      requests), Leave Balance (per-type cards), Leave Calendar
+      (`MiniCalendarCard`, date-range-expanded highlights), Approvals
+      (my direct reports' pending requests, approve/reject — decrements
+      the matching `LeaveBalance` server-side on approval).
+      `LeaveType` is a real admin-configurable table (Django admin),
+      not a hardcoded enum. Leave Reports is **not built**.
 - [ ] Documents (My/Employee/Company, Policies, Contracts, Certificates,
-      Expiry, Approval)
+      Expiry, Approval) — still out of scope; only Profile Documents
+      (above) exists
 - [ ] Performance (My/Goals/KPIs/Reviews/Manager Reviews/Self
       Assessment/Feedback/Reports)
 - [ ] HR Administration (Employee/Leave/Attendance policies, Holiday
-      Calendar, HR Settings)
+      Calendar, HR Settings) — `LeaveType` is admin-editable via Django
+      admin today; no in-app UI for it or any other policy yet
 
 ## ✅ My Work
 

@@ -5,10 +5,10 @@ Management + Task Management + Internal Service Desk + Analytics, under
 one shell.
 
 Monorepo: Django + DRF + MySQL in `backend/`, React (Vite) + Tailwind in
-`frontend/`. This is an early build — the application shell and one
-module page (HRMS Overview) exist; every other module is a "coming soon"
-placeholder. Read `docs/ARCHITECTURE.md`, `docs/CONVENTIONS.md`, and
-`docs/MODULE_PLAN.md` before adding to it.
+`frontend/`. HRMS's first four sub-areas (My Profile, Employees,
+Attendance, Leave) are built end to end, behind a real login; every other
+module is still a "coming soon" placeholder. Read `docs/ARCHITECTURE.md`,
+`docs/CONVENTIONS.md`, and `docs/MODULE_PLAN.md` before adding to it.
 
 ## Prerequisites
 
@@ -35,12 +35,17 @@ pip install -r requirements.txt
 
 cp .env.example .env   # adjust DB_* if your credentials differ
 python manage.py migrate
-python manage.py createsuperuser   # optional, for /admin/
+python manage.py seed_demo_data     # demo org/employees/leave/attendance — prints login credentials
 python manage.py runserver 127.0.0.1:8000
 ```
 
 Verify it's up: `curl http://127.0.0.1:8000/api/core/health/` should
 return `{"status": "ok", ..., "database": {"connected": true, ...}}`.
+
+`seed_demo_data` prints every seeded username plus the shared demo
+password, and creates a Django admin superuser (`admin`, same password)
+— log into the frontend with any of those, or `/admin/` with `admin`.
+Re-running it is safe (idempotent).
 
 Run the backend test suite: `python manage.py test`.
 
@@ -53,9 +58,10 @@ cp .env.example .env   # only needed if the backend isn't on localhost:8000
 npm run dev
 ```
 
-Open `http://localhost:5173` — it redirects to `/hrms/overview`. The
-sidebar's bottom-left dot shows whether it reached the backend's health
-endpoint ("API connected" / "API offline").
+Open `http://localhost:5173` — sign in with one of `seed_demo_data`'s
+printed usernames (password from the same output), then it redirects to
+`/hrms/overview`. The sidebar's bottom-left dot shows whether it reached
+the backend's health endpoint ("API connected" / "API offline").
 
 Other frontend scripts:
 
